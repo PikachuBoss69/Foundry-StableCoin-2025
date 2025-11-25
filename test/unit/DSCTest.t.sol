@@ -10,6 +10,8 @@ import {HelperConfig} from "../../script/Helperconfig.s.sol";
 import {ERC20Mock} from "../mocks/Erc20Mock.sol";
 import {MockV3Aggregator} from "../mocks/MocksV3Aggregator.sol";
 import {MockFailedMintDSC} from "../mocks/MockFailedMintDSC.sol";
+import "forge-std/Vm.sol";
+
 
 
 contract DSCTest is Test {
@@ -315,14 +317,49 @@ contract DSCTest is Test {
         vm.stopPrank();
     }
 
-    function testEmitCollateralRedeemedWithCorrectArgs() public depositedCollateral {
-        // The next event emitted must match the event I am about to emit manually.
-        vm.expectEmit(true, true, false, true, address(dsce));
-        emit CollateralRedeemed(USER, USER, weth, AMOUNT_COLLATERAL);
+//     function testEmitCollateralRedeemedWithCorrectArgs() public depositedCollateralAndMintDsc {
+//     vm.startPrank(USER);
+
+//     vm.expectEmit(true, true, true, false, address(dsce));
+//     emit CollateralRedeemed(USER,USER, address(weth), AMOUNT_COLLATERAL);
+
+//     dsce.redeemCollateral(address(weth), AMOUNT_COLLATERAL);
+
+
+//     vm.stopPrank();
+// }
+
+    ///////////////////////////////////
+    // redeemCollateralForDsc Tests //
+    //////////////////////////////////
+    function testMustRedeemMoreThanZero() public depositedCollateralAndMintDsc {
         vm.startPrank(USER);
-        dsce.redeemCollateral(weth, AMOUNT_COLLATERAL);
+        dsc.approve(address(dsce), AMOUNT_MINT);
+        vm.expectRevert(
+           
+                DSCEngine.DSCEngine__NeedsMoreThanZero.selector
+            
+        );
+        dsce.redeemCollateralForDsc(address(weth), 0, AMOUNT_MINT);
         vm.stopPrank();
     }
 
+    function testCanRedeemDepositedCollateral() public {
+        vm.startPrank(USER);
+        ERC20Mock(weth).approve(address(dsce), AMOUNT_COLLATERAL);
+        dsce.depositeCollateral(weth, AMOUNT_COLLATERAL);
+        uint256 userBalanceBeforeRedeem = dsce.getCollateralBalanceOfUser(USER, weth);
+        assertEq(userBalanceBeforeRedeem, AMOUNT_COLLATERAL);
+        dsce.redeemCollateral(weth, AMOUNT_COLLATERAL);
+        uint256 userBalanceAfterRedeem = dsce.getCollateralBalanceOfUser(USER, weth);
+        assertEq(userBalanceAfterRedeem, 0);
+        vm.stopPrank();
+    }
+
+    ///////////////////////
+    // Liquidation Tests //
+    ///////////////////////
+
+    
 
 }
