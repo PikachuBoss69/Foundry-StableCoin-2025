@@ -31,10 +31,11 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__TokenAddressesAndPriceFeedAddressMustBeSameLength();
     error DSCEngine__NotAllowedToken();
     error DSCEngine__TransferFailed();
-    error DSCEngine__BreakHealthFactor(uint256 healthFactor);
+    error DSCEngine__BreakHealthFactor();
     error DSCEngine__MintFailed();
     error DSCEingine__HealthFactorIsOk();
     error DSCEngine__HealthFactorIsNotImproved();
+    error DSCEngine__NotEnoughMinted();
 
     //////////////////////////
     // State Variables      //
@@ -276,11 +277,13 @@ contract DSCEngine is ReentrancyGuard {
         uint256 amountDscToBurn,
         address onBehalfOf
     ) private {
-        s_DSCMinted[onBehalfOf] -= amountDscToBurn;
-        bool success = i_dsc.transfer(dscfrom, amountDscToBurn);
+          if (s_DSCMinted[onBehalfOf] < amountDscToBurn) revert DSCEngine__NotEnoughMinted();
+        bool success = i_dsc.transferFrom(dscfrom,address(this), amountDscToBurn);
+
         if (!success) {
             revert DSCEngine__TransferFailed();
         }
+        s_DSCMinted[onBehalfOf] -= amountDscToBurn;
         i_dsc.burn(amountDscToBurn);
     }
 
@@ -441,5 +444,8 @@ contract DSCEngine is ReentrancyGuard {
     }
     function getTotalDscMinted(address user) external view returns (uint256) {
         return s_DSCMinted[user];
+    }
+    function getCollateralBalanceOfUser(address user, address token) external view returns (uint256) {
+        return s_collateralDeposited[user][token];
     }
 }
