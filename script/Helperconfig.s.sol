@@ -20,17 +20,18 @@ contract HelperConfig is Script {
     NetworkConfig public activeNetworkConfig;
 
     constructor() {
-        if(block.chainid == 11155111) { // Sepolia
+        if (block.chainid == 11155111) {
+            // Sepolia
             activeNetworkConfig = getSepoliaEthConfig();
-        } else if(block.chainid == 31337) { // Anvil
+        } else if (block.chainid == 31337) {
+            // Anvil
             activeNetworkConfig = getOrCreateAnvilEthConfig();
         } else {
             revert("Unsupported network");
         }
-       
     }
-    
-    function getSepoliaEthConfig() public view returns(NetworkConfig memory){
+
+    function getSepoliaEthConfig() public view returns (NetworkConfig memory) {
         return NetworkConfig({
             wethUsdPriceFeed: 0x694AA1769357215DE4FAC081bf1f309aDC325306,
             wbtcUsdPriceFeed: 0x1b44F3514812d835EB1BDB0acB33d3fA3351Ee43,
@@ -40,26 +41,25 @@ contract HelperConfig is Script {
         });
     }
 
-    function getOrCreateAnvilEthConfig() public returns(NetworkConfig memory) {
-            if(activeNetworkConfig.wethUsdPriceFeed != address(0)) {
-                return activeNetworkConfig;
-            }
+    function getOrCreateAnvilEthConfig() public returns (NetworkConfig memory) {
+        if (activeNetworkConfig.wethUsdPriceFeed != address(0)) {
+            return activeNetworkConfig;
+        }
 
-            vm.startBroadcast();
-            MockV3Aggregator ethUsdPriceFeed = new MockV3Aggregator(8, 2000e8);
-            ERC20Mock wethMock = new ERC20Mock("WETH", "WETH", msg.sender, 1000e8);
+        vm.startBroadcast();
+        MockV3Aggregator ethUsdPriceFeed = new MockV3Aggregator(8, 2000e8);
+        ERC20Mock wethMock = new ERC20Mock("WETH", "WETH", msg.sender, 1000e8);
 
-            MockV3Aggregator btcUsdPriceFeed = new MockV3Aggregator(8, 2000e8);
-            ERC20Mock wbtcMock = new ERC20Mock("WBTC", "WBTC", msg.sender, 1000e8);
-            vm.stopBroadcast();
+        MockV3Aggregator btcUsdPriceFeed = new MockV3Aggregator(8, 2000e8);
+        ERC20Mock wbtcMock = new ERC20Mock("WBTC", "WBTC", msg.sender, 1000e8);
+        vm.stopBroadcast();
 
-            return NetworkConfig({
-                wethUsdPriceFeed: address(ethUsdPriceFeed),
-                wbtcUsdPriceFeed: address(btcUsdPriceFeed),
-                weth: address(wethMock),
-                wbtc: address(wbtcMock),
-                deployerKey:DEFAULT_ANVIL_KEY
-            });
+        return NetworkConfig({
+            wethUsdPriceFeed: address(ethUsdPriceFeed),
+            wbtcUsdPriceFeed: address(btcUsdPriceFeed),
+            weth: address(wethMock),
+            wbtc: address(wbtcMock),
+            deployerKey: DEFAULT_ANVIL_KEY
+        });
     }
-    
 }

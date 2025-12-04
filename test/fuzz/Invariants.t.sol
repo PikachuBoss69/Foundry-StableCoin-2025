@@ -18,7 +18,7 @@ import {HelperConfig} from "../../script/Helperconfig.s.sol";
 import {Handler} from "./Handler.t.sol";
 // import {MockV3Aggregator} from "../mocks/MockV3Aggregator.sol";
 
-contract InvariantsTest is StdInvariant{
+contract InvariantsTest is StdInvariant {
     DeployDSC deployer;
     DSCEngine dsce;
     DecentralizedStableCoin dsc;
@@ -26,19 +26,17 @@ contract InvariantsTest is StdInvariant{
     Handler handler;
     address weth;
     address wbtc;
-    
 
     function setUp() public {
         deployer = new DeployDSC();
         (dsc, dsce, config) = deployer.run();
-        (,, weth, wbtc, ) = config.activeNetworkConfig();
+        (,, weth, wbtc,) = config.activeNetworkConfig();
         // transfer token ownership to DSCEngine so DSCEngine can mint/burn
-        
+
         dsc.transferOwnership(address(dsce));
-        
+
         handler = new Handler(dsce, dsc);
         targetContract(address(handler));
-
     }
 
     function invariant_protocolMustHaveMoreValuethanTotalSupply() public view {
@@ -46,17 +44,16 @@ contract InvariantsTest is StdInvariant{
         uint256 totalWethDeposited = IERC20(weth).balanceOf(address(dsce));
         uint256 totalWbtcDeposited = IERC20(wbtc).balanceOf(address(dsce));
 
-    uint256 wethValue = dsce.getUsdValue(weth, totalWethDeposited);
-    uint256 wbtcValue = dsce.getUsdValue(wbtc, totalWbtcDeposited);
+        uint256 wethValue = dsce.getUsdValue(weth, totalWethDeposited);
+        uint256 wbtcValue = dsce.getUsdValue(wbtc, totalWbtcDeposited);
 
-    console.log("Total Supply:", totalSupply);
-  
-    console.log("WETH Value:", wethValue);
-    console.log("WBTC Value:", wbtcValue);
-    console.log("Times mint is called:", handler.timesMintIsCalled());
+        console.log("Total Supply:", totalSupply);
 
-    assert(wethValue + wbtcValue >= totalSupply);
+        console.log("WETH Value:", wethValue);
+        console.log("WBTC Value:", wbtcValue);
+        console.log("Times mint is called:", handler.timesMintIsCalled());
 
+        assert(wethValue + wbtcValue >= totalSupply);
     }
 
     // function invariant_getterFunctionsShouldNotRevert(address token, uint256 usdAmountInwei, uint256 amount, uint256 totalDscMintedInUsd, uint256 totalCollateralValueInUsd) public view {
@@ -75,8 +72,4 @@ contract InvariantsTest is StdInvariant{
     //     dsce.getCollateralTokens();
     //     dsce.getCollateralTokenPriceFeed(token);
     // }
-
-
-    
-    
 }

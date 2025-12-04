@@ -26,8 +26,9 @@ contract DecentralizedStableCoinTest is Test {
         vm.expectRevert();
         dsc.burn(0);
         vm.stopPrank();
-    }   
-     function testCantBurnMoreThanYouHave() public {
+    }
+
+    function testCantBurnMoreThanYouHave() public {
         vm.startPrank(OWNER);
         dsc.mint(address(this), 100);
         vm.expectRevert();
@@ -40,5 +41,5 @@ contract DecentralizedStableCoinTest is Test {
         vm.expectRevert();
         dsc.mint(address(0), 100);
         vm.stopPrank();
-    }  
+    }
 }
