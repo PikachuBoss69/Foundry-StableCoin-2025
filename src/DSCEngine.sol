@@ -6,6 +6,7 @@ import {DecentralizedStableCoin} from "./DecentralizedStableCoin.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
+import {OracleLib} from "./libraries/OracleLib.sol";
 
 /**
  * @title DSCEngine
@@ -66,6 +67,11 @@ contract DSCEngine is ReentrancyGuard {
         address indexed token,
         uint256 amount
     );
+
+    /////////////////////////
+    //Type                 //
+    /////////////////////////
+    using OracleLib for AggregatorV3Interface;
 
     //////////////////////////
     // MODIFIERS            //
@@ -372,7 +378,7 @@ contract DSCEngine is ReentrancyGuard {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(
             s_priceFeeds[token]
         );
-        (, int256 price, , , ) = priceFeed.latestRoundData();
+        (, int256 price, , , ) = priceFeed.stalePriceCheckLatestRoundData();
         // 1e8 is the decimals of the price feed, so we need to adjust for that
         // 1e18 is the decimals of the token, so we need to adjust for that
         return (usdAmountInWei * 1e8) / uint256(price);
@@ -411,7 +417,7 @@ contract DSCEngine is ReentrancyGuard {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(
             s_priceFeeds[token]
         );
-        (, int256 price, , , ) = priceFeed.latestRoundData();
+        (, int256 price, , , ) = priceFeed.stalePriceCheckLatestRoundData();
 
         return ((uint256(price) * 1e10) * amount) / 1e18;
     }
@@ -447,5 +453,11 @@ contract DSCEngine is ReentrancyGuard {
     }
     function getCollateralBalanceOfUser(address user, address token) external view returns (uint256) {
         return s_collateralDeposited[user][token];
+    }
+    function getCollateralTokens() external view returns (address[] memory) {
+        return s_collateralTokens;
+    }
+    function getCollateralTokenPriceFeed(address token) external view returns (address) {
+        return s_priceFeeds[token];
     }
 }
