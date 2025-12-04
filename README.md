@@ -15,6 +15,20 @@ This project was developed as a guided exercise, and massive credit is due to th
 
 ---
 
+## 🛣️ Future Work & Contribution Opportunities
+
+This project is a work in progress. We welcome contributions from the community to enhance security, testing, and robustness in the following areas:
+
+* **Complete Test Coverage:** While core logic is tested, coverage must be expanded:
+    * Writing **more extensive unit and fuzz tests** for edge cases in liquidation and collateral handling.
+    * Developing dedicated **oracle failure tests** to ensure the system gracefully handles stale or manipulated price feeds.
+* **System Resiliency Logic:** Developing a contingency logic for **black swan events**. This includes:
+    * Implementing a robust method to **pause the system** (emergency shutdown) if the collateral value suddenly crashes (e.g., 50% drop in minutes) to prevent catastrophic protocol insolvency.
+    * Adding a **Global Settlement** mechanism to securely wind down the protocol if the peg fails irrevocably.
+* **New Collateral Assets:** Integrating and testing support for additional collateral types (e.g., WBTC, LINK).
+* **Decentralized Governance:** Implementing a voting or time-lock mechanism to safely manage system parameters (e.g., liquidation ratio, collateral limits) after deployment.
+
+
 ## 💡 The Stablecoin Explained
 
 ### What is a Stablecoin?
