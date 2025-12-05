@@ -20,6 +20,9 @@ contract DSCTest is Test {
     DSCEngine public dsce;
     HelperConfig public config;
 
+    uint256 public beforeLiquidatorBalance;
+    uint256 public afterLiquidatorBalance;
+
     address public ethUsdPriceFeed;
     address public btcUsdPriceFeed;
     address public weth;
@@ -32,6 +35,10 @@ contract DSCTest is Test {
     uint256 public constant MIN_HEALTH_FACTOR = 1e18;
     uint256 public constant LIQUIDATION_THRESHOLD = 50;
     uint256 public constant LIQUIDATION_BONUS = 10;
+
+    // Liquidation
+    address public liquidator = makeAddr("liquidator");
+    uint256 public collateralToCover = 20 ether;
 
     address public USER = makeAddr("user");
 
@@ -298,42 +305,73 @@ contract DSCTest is Test {
     ///////////////////////
     // Liquidation Tests //
     ///////////////////////
+
+    function testCantLiquidateIfHealthFActorIsOk() public depositedCollateralAndMintDsc{
+        // You give the liquidator some WETH tokens so they have enough collateral to attempt a liquidation.
+        ERC20Mock(weth).mint(liquidator, collateralToCover);
+
+        vm.startPrank(liquidator);
+        ERC20Mock(weth).approve(address(dsce), collateralToCover);
+
+        // ✔ A — Takes the liquidator's WETH
+        // ✔ B — Locks the WETH as collateral inside the protocol
+        // ✔ C — Mints DSC stablecoins, NOT WETH
+        dsce.depositeCollateralAndmintDsc(weth, collateralToCover, AMOUNT_MINT);
+        dsc.approve(address(dsce), AMOUNT_MINT);
+        vm.expectRevert(
+            DSCEngine.DSCEingine__HealthFactorIsOk.selector
+        );
+        dsce.liquidate(weth, USER, AMOUNT_MINT);
+        vm.stopPrank();
+
+    }
+
     modifier liquidated() {
         vm.startPrank(USER);
         ERC20Mock(weth).approve(address(dsce), AMOUNT_COLLATERAL);
-        dsce.depositCollateralAndMintDsc(weth, AMOUNT_COLLATERAL, AMOUNT_MINT);
+        dsce.depositeCollateralAndmintDsc(weth, AMOUNT_COLLATERAL, AMOUNT_MINT);
         vm.stopPrank();
         int256 ethUsdUpdatedPrice = 18e8; // 1 ETH = $18
 
         MockV3Aggregator(ethUsdPriceFeed).updateAnswer(ethUsdUpdatedPrice);
-        uint256 userHealthFactor = dsce.getHealthFactor(user);
+        uint256 userHealthFactor = dsce.getHealthFactor(USER);
 
         ERC20Mock(weth).mint(liquidator, collateralToCover);
 
         vm.startPrank(liquidator);
         ERC20Mock(weth).approve(address(dsce), collateralToCover);
-        dsce.depositCollateralAndMintDsc(weth, collateralToCover, amountToMint);
-        dsc.approve(address(dsce), amountToMint);
-        dsce.liquidate(weth, user, amountToMint); // We are covering their whole debt
+        dsce.depositeCollateralAndmintDsc(weth, collateralToCover, AMOUNT_MINT);
+        dsc.approve(address(dsce), AMOUNT_MINT);
+        beforeLiquidatorBalance = dsc.balanceOf(liquidator);
+        dsce.liquidate(weth, USER, AMOUNT_MINT); // We are covering their whole debt
         vm.stopPrank();
+        afterLiquidatorBalance = dsc.balanceOf(liquidator);
         _;
+    }
+    function testLiquidatorTakesOnUserdebt() public liquidated{
+        uint256 expectedLiquidatorDscBalance = AMOUNT_MINT;
+        assertEq(beforeLiquidatorBalance-afterLiquidatorBalance, expectedLiquidatorDscBalance);
+}
+    function testUserHasNoMoreDebt() public liquidated {
+        (uint256 userDscMinted,) = dsce.getAccountInformation(USER);
+        assertEq(userDscMinted, 0);
     }
 
     /////////////////////////////////
     //View and Pure function Tests //
     /////////////////////////////////
 
-    function testGetCollateralTokens() public {
+    function testGetCollateralTokens() public view{
         address[] memory collateralTokens = dsce.getCollateralTokens();
         assertEq(collateralTokens[0], weth);
     }
 
-    function testGetMinimumHealthFactor() public {
+    function testGetMinimumHealthFactor() public view{
         uint256 healthfactor = dsce.getMinHealthFactor();
         assertEq(healthfactor, MIN_HEALTH_FACTOR);
     }
 
-    function testGetLiquidationThreshold() public {
+    function testGetLiquidationThreshold() public view{
         uint256 liquidationThreshold = dsce.getLiquidationThreshold();
         assertEq(liquidationThreshold, LIQUIDATION_THRESHOLD);
     }
@@ -344,12 +382,12 @@ contract DSCTest is Test {
         assertEq(collateralValue, expectedCollateralValue);
     }
 
-    function testLiquidationBonus() public {
+    function testLiquidationBonus() public view{
         uint256 liquidationBonus = dsce.getLiquidationBonus();
         assertEq(liquidationBonus, LIQUIDATION_BONUS);
     }
 
-    function testGetDsc() public {
+    function testGetDsc() public view{
         address dscAddress = dsce.getDsc();
         assertEq(dscAddress, address(dsc));
     }

@@ -214,7 +214,7 @@ contract DSCEngine is ReentrancyGuard {
 
         _redeemCollateral(collateral, totalCollateralToRedeem, user, msg.sender);
 
-        _burnDsc(user, debtToCover, msg.sender);
+        _burnDsc(msg.sender, debtToCover, user);
 
         uint256 endingUserHealthFactor = _healthFactor(user);
         if (endingUserHealthFactor <= startingUserHealthFactor) {
